@@ -6,50 +6,7 @@ import type { POI, OpenStatus } from './types/poi'
 import { DEFAULT_VIEW, MIN_ZOOM } from './config/map'
 import { reverseGeocodePlace } from './utils/nominatim'
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
-const POI_CATEGORIES: Array<[string, string]> = [
-  ['amenity', 'restaurant'],
-  ['amenity', 'cafe'],
-  ['amenity', 'bar'],
-  ['amenity', 'pub'],
-  ['amenity', 'fast_food'],
-  ['amenity', 'food_court'],
-  ['amenity', 'ice_cream'],
-  ['shop', 'convenience'],
-  ['shop', 'supermarket'],
-  ['shop', 'bakery'],
-  ['shop', 'butcher'],
-  ['shop', 'coffee'],
-  ['shop', 'grocery'],
-  ['shop', 'greengrocer'],
-  ['shop', 'clothes'],
-  ['shop', 'shoes'],
-  ['shop', 'books'],
-  ['shop', 'gift'],
-  ['shop', 'florist'],
-  ['shop', 'hardware'],
-  ['shop', 'electronics'],
-  ['shop', 'mobile_phone'],
-  ['shop', 'furniture'],
-  ['shop', 'toys'],
-  ['shop', 'sports'],
-  ['shop', 'bicycle'],
-  ['shop', 'pharmacy'],
-  ['shop', 'chemist'],
-  ['amenity', 'bank'],
-  ['amenity', 'pharmacy'],
-  ['amenity', 'post_office'],
-  ['amenity', 'library'],
-  ['amenity', 'fuel'],
-  ['amenity', 'cinema'],
-  ['amenity', 'theatre'],
-  ['amenity', 'nightclub'],
-  ['amenity', 'doctors'],
-  ['amenity', 'dentist'],
-  ['amenity', 'clinic'],
-  ['amenity', 'hospital'],
-  ['amenity', 'veterinary'],
-]
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
 const LOCALE_OPTIONS = [
   'en', 'en-US', 'en-GB', 'en-CA',
@@ -63,20 +20,6 @@ const LOCALE_OPTIONS = [
 type ViewState = { latitude: number; longitude: number; zoom: number }
 
 type PlaceInfo = { city?: string; countryCode?: string; state?: string }
-
-function buildQuery(bbox: [number, number, number, number]): string {
-  const [south, west, north, east] = bbox
-  const filters = POI_CATEGORIES.map(([k, v]) => `  node["${k}"="${v}"](${south},${west},${north},${east});`).join('\n')
-  return `
-  [out:json][timeout:25];
-  (
-${filters}
-  );
-  out body;
-  >;
-  out skel qt;
-  `
-}
 
 function computeStatus(oh: opening_hours | null, now: Date): OpenStatus {
   if (!oh) return 'unknown'
@@ -123,22 +66,18 @@ export default function App() {
     setLoading(true)
     setError(null)
     try {
-      const query = buildQuery(bbox)
-      console.log('Overpass query:', query)
-      const res = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ data: query }).toString(),
-      })
+      const [west, south, east, north] = bbox
+      const bboxParam = `${west},${south},${east},${north}`
+      console.log('Fetching POIs from API:', bboxParam)
+      const res = await fetch(`${API_URL}/pois?bbox=${bboxParam}`)
       if (!res.ok) {
         const errorText = await res.text()
-        console.error('Overpass error response:', errorText)
-        throw new Error(`Overpass error (${res.status}): ${errorText}`)
+        console.error('API error response:', errorText)
+        throw new Error(`API error (${res.status}): ${errorText}`)
       }
       const data = await res.json()
       const parsed: POI[] = []
       for (const el of data.elements ?? []) {
-        if (el.type !== 'node') continue
         const tags = el.tags || {}
         const openingHours =
           tags.opening_hours ||
@@ -156,7 +95,7 @@ export default function App() {
         }
 
         parsed.push({
-          id: `node/${el.id}`,
+          id: `${el.type}/${el.id}`,
           lat: el.lat,
           lon: el.lon,
           name: tags.name,
@@ -201,15 +140,23 @@ export default function App() {
   const selectedOh = useMemo(() => {
     if (!selectedPoi?.openingHours) return null
     try {
-      return new opening_hours(selectedPoi.openingHours, {
+      const oh = new opening_hours(selectedPoi.openingHours, {
         lat: selectedPoi.lat,
         lon: selectedPoi.lon,
         address: { country_code: selectedPlace?.countryCode || '', state: selectedPlace?.state || '' },
       })
-    } catch {
+      console.log('Created opening_hours object:', {
+        raw: selectedPoi.openingHours,
+        prettified: oh.prettifyValue(),
+        isOpen: oh.getState(new Date()),
+        isUnknown: oh.getUnknown(new Date()),
+      })
+      return oh
+    } catch (error) {
+      console.error('Failed to parse opening hours:', selectedPoi.openingHours, error)
       return null
     }
-  }, [selectedPoi?.id, selectedPlace?.countryCode, selectedPlace?.state])
+  }, [selectedPoi?.id, selectedPoi?.openingHours, selectedPlace?.countryCode, selectedPlace?.state])
 
   const handlePoiEdit = (oh: opening_hours) => {
     if (!selectedPoi) return
@@ -223,17 +170,13 @@ export default function App() {
     try {
       setLoading(true)
       setError(null)
-      const query = `[out:json][timeout:20]; ${type}(${id}); out body;`
-      console.log('Element query:', query)
-      const res = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({ data: query }).toString(),
-      })
+      const typeStr = type === 'n' ? 'node' : type === 'w' ? 'way' : 'relation'
+      console.log('Loading element from API:', typeStr, id)
+      const res = await fetch(`${API_URL}/element/${typeStr}/${id}`)
       if (!res.ok) {
         const errorText = await res.text()
-        console.error('Overpass error response:', errorText)
-        throw new Error(`Overpass error (${res.status}): ${errorText}`)
+        console.error('API error response:', errorText)
+        throw new Error(`API error (${res.status}): ${errorText}`)
       }
       const data = await res.json()
       const element = data?.elements?.[0]
@@ -246,7 +189,7 @@ export default function App() {
         ''
       const oh = openingHours ? new opening_hours(openingHours, { lat: element.lat, lon: element.lon, address: { country_code: '', state: '' } }) : null
       const poi: POI = {
-        id: `${type === 'n' ? 'node' : type === 'w' ? 'way' : 'relation'}/${id}`,
+        id: `${element.type}/${element.id}`,
         lat: element.lat,
         lon: element.lon,
         name: tags.name,
@@ -336,7 +279,7 @@ export default function App() {
                   )}
                 </div>
                 <OpeningHours
-                  openingHours={selectedOh ?? new opening_hours('24/7')}
+                  openingHours={selectedOh}
                   hourCycle={hourCycle}
                   locale={locale}
                   editable={false}
@@ -347,7 +290,7 @@ export default function App() {
               <div className="card-body">
                 <div className="label">Schedule</div>
                 <OpeningHoursSchedule
-                  openingHours={selectedOh ?? new opening_hours('24/7')}
+                  openingHours={selectedOh}
                   hourCycle={hourCycle}
                   locale={locale}
                 />
@@ -356,7 +299,7 @@ export default function App() {
               <div className="card-body">
                 <div className="label">Edit</div>
                 <OpeningHoursEditor
-                  openingHours={selectedOh ?? new opening_hours('24/7')}
+                  openingHours={selectedOh}
                   hourCycle={hourCycle}
                   onChange={handlePoiEdit}
                 />

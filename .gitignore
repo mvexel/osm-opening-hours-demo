@@ -6,3 +6,7 @@ data/*.osm
 api/node_modules
 .vite
 .DS_Store
+
+# TypeScript compiled output (Vite handles compilation)
+src/**/*.js
+src/**/*.jsx

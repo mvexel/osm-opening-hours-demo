@@ -102,7 +102,7 @@ app.get('/api/element/:type/:id', async (req, res) => {
         const osmType = osmTypeMap[type.toLowerCase()];
         if (!osmType) {
             return res.status(400).json({ error: 'Invalid type. Use node, way, or relation' });
-        }
+        } ``
 
         const query = `
       SELECT 

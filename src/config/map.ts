@@ -1,4 +1,4 @@
-export const MIN_ZOOM = 16
+export const MIN_ZOOM = 12
 
 export const DEFAULT_VIEW = {
   latitude: 40.764742,
