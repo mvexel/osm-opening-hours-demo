@@ -89,7 +89,8 @@ export default function App() {
         if (openingHours) {
           try {
             oh = new opening_hours(openingHours, { lat: el.lat, lon: el.lon, address: { country_code: '', state: '' } })
-          } catch {
+          } catch (err) {
+            console.warn(`Failed to parse opening hours for ${el.type}/${el.id}:`, openingHours, err)
             oh = null
           }
         }
@@ -105,6 +106,9 @@ export default function App() {
           openingHours,
           openStatus: computeStatus(oh, now),
         })
+        if (!openingHours || !oh) {
+          console.log(`POI ${el.type}/${el.id} has no valid hours:`, { openingHours, status: computeStatus(oh, now) })
+        }
       }
       setPois(parsed)
     } catch (err) {
@@ -138,7 +142,15 @@ export default function App() {
   }, [])
 
   const selectedOh = useMemo(() => {
-    if (!selectedPoi?.openingHours) return null
+    console.log('[selectedOh memo] Running with:', {
+      poiId: selectedPoi?.id,
+      openingHours: selectedPoi?.openingHours,
+      hasOpeningHours: !!selectedPoi?.openingHours,
+    })
+    if (!selectedPoi?.openingHours) {
+      console.log('No opening hours for POI:', selectedPoi?.id)
+      return null
+    }
     try {
       const oh = new opening_hours(selectedPoi.openingHours, {
         lat: selectedPoi.lat,
@@ -157,6 +169,11 @@ export default function App() {
       return null
     }
   }, [selectedPoi?.id, selectedPoi?.openingHours, selectedPlace?.countryCode, selectedPlace?.state])
+
+  const handleSelectPoi = (poi: POI) => {
+    console.log('[handleSelectPoi] Selected POI:', { id: poi.id, openingHours: poi.openingHours, openStatus: poi.openStatus })
+    setSelectedPoi(poi)
+  }
 
   const handlePoiEdit = (oh: opening_hours) => {
     if (!selectedPoi) return
@@ -259,7 +276,7 @@ export default function App() {
           <Map
             pois={pois}
             onBoundsChange={fetchPOIs}
-            onSelectPoi={setSelectedPoi}
+            onSelectPoi={handleSelectPoi}
             onViewChange={handleViewChange}
             initialViewState={initialViewState}
             currentZoom={currentZoom}
@@ -279,6 +296,7 @@ export default function App() {
                   )}
                 </div>
                 <OpeningHours
+                  key={selectedPoi.id}
                   openingHours={selectedOh}
                   hourCycle={hourCycle}
                   locale={locale}
@@ -290,6 +308,7 @@ export default function App() {
               <div className="card-body">
                 <div className="label">Schedule</div>
                 <OpeningHoursSchedule
+                  key={`schedule-${selectedPoi.id}`}
                   openingHours={selectedOh}
                   hourCycle={hourCycle}
                   locale={locale}
@@ -299,9 +318,11 @@ export default function App() {
               <div className="card-body">
                 <div className="label">Edit</div>
                 <OpeningHoursEditor
+                  key={`editor-${selectedPoi.id}`}
                   openingHours={selectedOh}
                   hourCycle={hourCycle}
                   onChange={handlePoiEdit}
+                  osmId={selectedPoi.id}
                 />
               </div>
             </div>
