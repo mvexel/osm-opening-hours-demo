@@ -1,0 +1,27 @@
+{
+  "name": "osm-opening-hours-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:all": "docker-compose up -d postgres api && vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@osm-is-it-open/hours": "file:../osm-is-it-open",
+    "@vis.gl/react-maplibre": "^8.0.4",
+    "maplibre-gl": "^5.13.0",
+    "opening_hours": "^3.8.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  }
+}

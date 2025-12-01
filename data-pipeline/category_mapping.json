@@ -1,0 +1,202 @@
+{
+    "categories": [
+        {
+            "class": "restaurant",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "restaurant"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "cafe",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "cafe"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "bar",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "bar"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "pub"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "fast_food",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "fast_food"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "food_court"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "ice_cream"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "shop",
+            "matches": [
+                [
+                    [
+                        "shop",
+                        "*"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "bank",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "bank"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "pharmacy",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "pharmacy"
+                    ]
+                ],
+                [
+                    [
+                        "shop",
+                        "pharmacy"
+                    ]
+                ],
+                [
+                    [
+                        "shop",
+                        "chemist"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "post_office",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "post_office"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "library",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "library"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "fuel",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "fuel"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "entertainment",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "cinema"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "theatre"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "nightclub"
+                    ]
+                ]
+            ]
+        },
+        {
+            "class": "healthcare",
+            "matches": [
+                [
+                    [
+                        "amenity",
+                        "doctors"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "dentist"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "clinic"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "hospital"
+                    ]
+                ],
+                [
+                    [
+                        "amenity",
+                        "veterinary"
+                    ]
+                ]
+            ]
+        }
+    ]
+}

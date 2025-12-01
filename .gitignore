@@ -1,0 +1,8 @@
+node_modules
+dist
+.env.local
+data/*.osm.pbf
+data/*.osm
+api/node_modules
+.vite
+.DS_Store
