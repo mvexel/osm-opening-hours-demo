@@ -40,25 +40,45 @@ export function Map({
   useEffect(() => {
     if (initialViewState) {
       setViewState(initialViewState)
+
+      // Trigger bounds change when view is programmatically updated
+      const map = mapRef.current?.getMap()
+      if (map && initialViewState.zoom >= MIN_ZOOM) {
+        // Use setTimeout to ensure map has updated to new position
+        setTimeout(() => {
+          const bounds = map.getBounds()
+          const bbox: [number, number, number, number] = [
+            bounds.getWest(),
+            bounds.getSouth(),
+            bounds.getEast(),
+            bounds.getNorth(),
+          ]
+          onBoundsChange(bbox, initialViewState.zoom)
+          onViewChange?.({
+            latitude: initialViewState.latitude,
+            longitude: initialViewState.longitude,
+            zoom: initialViewState.zoom
+          })
+        }, 100)
+      }
     }
   }, [initialViewState?.latitude, initialViewState?.longitude, initialViewState?.zoom])
 
-  useEffect(() => {
+  const handleLoad = () => {
     const map = mapRef.current?.getMap()
-    if (map && map.isStyleLoaded()) {
-      const bounds = map.getBounds()
-      const zoom = map.getZoom()
-      if (zoom < MIN_ZOOM) return
-      const bbox: [number, number, number, number] = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth(),
-      ]
-      onBoundsChange(bbox, zoom)
-      onViewChange?.({ latitude: map.getCenter().lat, longitude: map.getCenter().lng, zoom })
-    }
-  }, [])
+    if (!map) return
+    const bounds = map.getBounds()
+    const zoom = map.getZoom()
+    if (zoom < MIN_ZOOM) return
+    const bbox: [number, number, number, number] = [
+      bounds.getWest(),
+      bounds.getSouth(),
+      bounds.getEast(),
+      bounds.getNorth(),
+    ]
+    onBoundsChange(bbox, zoom)
+    onViewChange?.({ latitude: map.getCenter().lat, longitude: map.getCenter().lng, zoom })
+  }
 
   const handleMoveEnd = (evt: ViewStateChangeEvent) => {
     const map = evt.target
@@ -83,6 +103,7 @@ export function Map({
         minZoom={MIN_ZOOM}
         onMove={(evt) => setViewState(evt.viewState)}
         onMoveEnd={handleMoveEnd}
+        onLoad={handleLoad}
         style={{ width: '100%', height: '100%' }}
         mapStyle={MAP_STYLE}
       >

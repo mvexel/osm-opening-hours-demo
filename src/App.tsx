@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Map } from './components/Map'
+import { GeocodeSearch } from './components/GeocodeSearch'
 import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
 import type { opening_hours as OpeningHoursLib } from '@osm-is-it-open/hours'
 import '@osm-is-it-open/hours/dist/styles.css'
@@ -64,7 +65,7 @@ function getStatusClass(oh: OpeningHoursLib | null, now: Date): string {
   }
 }
 
-function formatRelativeTime(date: Date, now: Date, hourCycle: '12h' | '24h', locale: string): string {
+function formatRelativeTime(date: Date, now: Date, hourCycle: 'auto' | '12h' | '24h', locale: string): string {
   const nowDate = new Date(now)
   nowDate.setHours(0, 0, 0, 0)
   const targetDate = new Date(date)
@@ -72,12 +73,25 @@ function formatRelativeTime(date: Date, now: Date, hourCycle: '12h' | '24h', loc
 
   const dayDiff = Math.floor((targetDate.getTime() - nowDate.getTime()) / (1000 * 60 * 60 * 24))
 
-  const timeFormatter = new Intl.DateTimeFormat(locale, {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: hourCycle === '12h',
-  })
-  const timeStr = timeFormatter.format(date)
+  // Check if time is midnight (00:00)
+  const isMidnight = date.getHours() === 0 && date.getMinutes() === 0
+
+  // Special case: tomorrow at midnight = at midnight
+  if (dayDiff === 1 && isMidnight) {
+    return 'at midnight'
+  }
+
+  let timeStr: string
+  if (isMidnight) {
+    timeStr = 'midnight'
+  } else {
+    const timeFormatter = new Intl.DateTimeFormat(locale, {
+      hour: 'numeric',
+      minute: '2-digit',
+      ...(hourCycle !== 'auto' && { hour12: hourCycle === '12h' }),
+    })
+    timeStr = timeFormatter.format(date)
+  }
 
   if (dayDiff === 0) {
     return `today ${timeStr}`
@@ -90,7 +104,7 @@ function formatRelativeTime(date: Date, now: Date, hourCycle: '12h' | '24h', loc
   }
 }
 
-function getNextChangeMessage(oh: OpeningHoursLib | null, now: Date, hourCycle: '12h' | '24h', locale: string): string | null {
+function getNextChangeMessage(oh: OpeningHoursLib | null, now: Date, hourCycle: 'auto' | '12h' | '24h', locale: string): string | null {
   if (!oh) return null
   try {
     const unknown = oh.getUnknown(now)
@@ -118,7 +132,7 @@ export default function App() {
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hourCycle, setHourCycle] = useState<'12h' | '24h'>('24h')
+  const [hourCycle, setHourCycle] = useState<'auto' | '12h' | '24h'>('auto')
   const [locale, setLocale] = useState<string>('en')
   const [initialViewState, setInitialViewState] = useState<ViewState>(DEFAULT_VIEW)
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_VIEW.zoom)
@@ -142,6 +156,12 @@ export default function App() {
       const [west, south, east, north] = bbox
       const bboxParam = `${west},${south},${east},${north}`
       console.log('Fetching POIs from API:', bboxParam)
+
+      // Get place info for country code (use center of bbox)
+      const centerLat = (north + south) / 2
+      const centerLon = (east + west) / 2
+      const placeInfo = await reverseGeocodePlace(centerLat, centerLon)
+
       const res = await fetch(`${API_URL}/pois?bbox=${bboxParam}`)
       if (!res.ok) {
         const errorText = await res.text()
@@ -161,7 +181,14 @@ export default function App() {
         let oh: opening_hours | null = null
         if (openingHours) {
           try {
-            oh = new opening_hours(openingHours, { lat: el.lat, lon: el.lon, address: { country_code: '', state: '' } })
+            oh = new opening_hours(openingHours, {
+              lat: el.lat,
+              lon: el.lon,
+              address: {
+                country_code: placeInfo?.countryCode || '',
+                state: placeInfo?.state || ''
+              }
+            })
           } catch (err) {
             console.warn(`Failed to parse opening hours for ${el.type}/${el.id}:`, openingHours, err)
             oh = null
@@ -275,13 +302,24 @@ export default function App() {
       const data = await res.json()
       const element = data?.elements?.[0]
       if (!element) throw new Error('Element not found')
+
+      // Get location info first for country code
+      const placeInfo = await reverseGeocodePlace(element.lat, element.lon)
+
       const tags = element.tags || {}
       const openingHours =
         tags.opening_hours ||
         tags['opening_hours:covid19'] ||
         tags['opening_hours:conditional'] ||
         ''
-      const oh = openingHours ? new opening_hours(openingHours, { lat: element.lat, lon: element.lon, address: { country_code: '', state: '' } }) : null
+      const oh = openingHours ? new opening_hours(openingHours, {
+        lat: element.lat,
+        lon: element.lon,
+        address: {
+          country_code: placeInfo?.countryCode || '',
+          state: placeInfo?.state || ''
+        }
+      }) : null
       const poi: POI = {
         id: `${element.type}/${element.id}`,
         lat: element.lat,
@@ -317,9 +355,21 @@ export default function App() {
         </div>
         <div className="controls">
           <div className="control">
+            <span>Search</span>
+            <GeocodeSearch
+              onLocationSelect={(lat, lon, zoom) => {
+                setSelectedPoi(null)
+                const view = { latitude: lat, longitude: lon, zoom }
+                setInitialViewState(view)
+                handleViewChange(view)
+              }}
+              loading={loading}
+            />
+          </div>
+          <div className="control">
             <span>Clock</span>
             <div className="pill-group">
-              {(['24h', '12h'] as const).map((cycle) => (
+              {(['auto', '24h', '12h'] as const).map((cycle) => (
                 <button
                   key={cycle}
                   className={hourCycle === cycle ? 'pill active' : 'pill'}
@@ -385,25 +435,27 @@ export default function App() {
                       {getNextChangeMessage(selectedOh, now, hourCycle, locale)}
                     </div>
                   )}
-                  {selectedOh && (
-                    <button
-                      type="button"
-                      className="pill pill-sm"
-                      onClick={() => setIsEditing(!isEditing)}
-                    >
-                      {isEditing ? 'View Schedule' : 'Edit'}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    className="pill pill-sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                  >
+                    {isEditing ? 'View Schedule' : selectedOh ? 'Edit' : '+ Hours'}
+                  </button>
                 </div>
               </div>
 
-              {selectedOh ? (
+              {selectedOh || isEditing ? (
                 <div className="card-body">
                   <div className="label">{isEditing ? 'Edit' : 'Schedule'}</div>
                   {isEditing ? (
                     <OpeningHoursEditor
                       key={`editor-${selectedPoi.id}`}
-                      openingHours={selectedOh}
+                      openingHours={selectedOh || new opening_hours('24/7', {
+                        lat: selectedPoi.lat,
+                        lon: selectedPoi.lon,
+                        address: { country_code: selectedPlace?.countryCode || '', state: selectedPlace?.state || '' },
+                      })}
                       locale={locale}
                       onChange={handlePoiEdit}
                     />
@@ -411,7 +463,7 @@ export default function App() {
                     <OpeningHoursSchedule
                       key={`schedule-${selectedPoi.id}`}
                       openingHours={selectedOh}
-                      hourCycle={hourCycle}
+                      hourCycle={hourCycle === 'auto' ? undefined : hourCycle}
                       locale={locale}
                     />
                   )}
