@@ -4,7 +4,9 @@
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
@@ -80,6 +82,10 @@ body {
   border-color: #0f172a;
 }
 
+.pill-sm {
+  padding: 5px 12px;
+}
+
 select {
   padding: 8px 10px;
   border-radius: 8px;
@@ -96,7 +102,8 @@ select {
   min-height: 0;
 }
 
-.map-pane, .side-pane {
+.map-pane,
+.side-pane {
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -131,7 +138,9 @@ select {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .side-pane {
@@ -184,9 +193,16 @@ select {
   color: #0f172a;
 }
 
-.muted { color: #475569; font-size: 13px; }
+.muted {
+  color: #475569;
+  font-size: 13px;
+}
 
-.card-body { display: flex; flex-direction: column; gap: 8px; }
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .placeholder {
   border: 1px dashed #cbd5e1;
@@ -263,6 +279,14 @@ select {
   background: #f8fafc;
 }
 
+/* Make buttons in the editor component tighter */
+.card-body button {
+  padding: 2px 6px !important;
+  font-size: 12px !important;
+}
+
 @media (max-width: 1024px) {
-  .main { grid-template-columns: 1fr; }
+  .main {
+    grid-template-columns: 1fr;
+  }
 }

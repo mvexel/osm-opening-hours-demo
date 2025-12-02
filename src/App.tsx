@@ -123,6 +123,7 @@ export default function App() {
   const [initialViewState, setInitialViewState] = useState<ViewState>(DEFAULT_VIEW)
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_VIEW.zoom)
   const [selectedPlace, setSelectedPlace] = useState<PlaceInfo | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
 
   const now = useMemo(() => new Date(), [])
 
@@ -212,6 +213,10 @@ export default function App() {
       setSelectedPlace(info || null)
     })
   }, [])
+
+  useEffect(() => {
+    setIsEditing(false)
+  }, [selectedPoi?.id])
 
   const selectedOh = useMemo(() => {
     console.log('[selectedOh memo] Running with:', {
@@ -380,31 +385,37 @@ export default function App() {
                       {getNextChangeMessage(selectedOh, now, hourCycle, locale)}
                     </div>
                   )}
+                  {selectedOh && (
+                    <button
+                      type="button"
+                      className="pill pill-sm"
+                      onClick={() => setIsEditing(!isEditing)}
+                    >
+                      {isEditing ? 'View Schedule' : 'Edit'}
+                    </button>
+                  )}
                 </div>
               </div>
 
               {selectedOh ? (
-                <>
-                  <div className="card-body">
-                    <div className="label">Schedule</div>
-                    <OpeningHoursSchedule
-                      key={`schedule-${selectedPoi.id}`}
-                      openingHours={selectedOh}
-                      hourCycle={hourCycle}
-                      locale={locale}
-                    />
-                  </div>
-
-                  <div className="card-body">
-                    <div className="label">Edit</div>
+                <div className="card-body">
+                  <div className="label">{isEditing ? 'Edit' : 'Schedule'}</div>
+                  {isEditing ? (
                     <OpeningHoursEditor
                       key={`editor-${selectedPoi.id}`}
                       openingHours={selectedOh}
                       locale={locale}
                       onChange={handlePoiEdit}
                     />
-                  </div>
-                </>
+                  ) : (
+                    <OpeningHoursSchedule
+                      key={`schedule-${selectedPoi.id}`}
+                      openingHours={selectedOh}
+                      hourCycle={hourCycle}
+                      locale={locale}
+                    />
+                  )}
+                </div>
               ) : (
                 <div className="card-body">
                   <div className="no-hours-message">
