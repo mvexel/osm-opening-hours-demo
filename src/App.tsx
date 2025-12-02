@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Map } from './components/Map'
-import { OpeningHours, OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
+import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
 import '@osm-is-it-open/hours/dist/styles.css'
 import type { POI, OpenStatus } from './types/poi'
 import { DEFAULT_VIEW, MIN_ZOOM } from './config/map'
@@ -295,7 +295,7 @@ export default function App() {
                     <div className="muted">{selectedPlace.city}{selectedPlace.countryCode ? ` · ${selectedPlace.countryCode.toUpperCase()}` : ''}</div>
                   )}
                 </div>
-                <OpeningHours
+                <OpeningHoursEditor
                   key={selectedPoi.id}
                   openingHours={selectedOh}
                   hourCycle={hourCycle}
