@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NOMINATIM_BASE_URL } from '../utils/nominatim'
 
 interface GeocodeSearchProps {
   onLocationSelect: (lat: number, lon: number, zoom: number) => void
@@ -22,7 +23,7 @@ export function GeocodeSearch({ onLocationSelect, loading }: GeocodeSearchProps)
     setSearching(true)
     try {
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`
+        `${NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`
       )
       const results: NominatimResult[] = await response.json()
 

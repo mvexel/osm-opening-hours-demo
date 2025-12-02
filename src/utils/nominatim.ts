@@ -1,6 +1,7 @@
-const NOMINATIM_URL =
-  (import.meta.env.VITE_NOMINATIM_URL as string | undefined) ||
-  'https://nominatim.openstreetmap.org/reverse'
+export const NOMINATIM_BASE_URL =
+  import.meta.env.VITE_NOMINATIM_BASE_URL || 'https://nominatim.openstreetmap.org'
+
+const NOMINATIM_REV_URL = `${NOMINATIM_BASE_URL}/reverse`
 
 type PlaceInfo = {
   countryCode?: string
@@ -15,7 +16,7 @@ export async function reverseGeocodePlace(lat: number, lon: number): Promise<Pla
   const key = `${lat.toFixed(3)},${lon.toFixed(3)}`
   if (cache.has(key)) return cache.get(key)
 
-  const url = new URL(NOMINATIM_URL)
+  const url = new URL(NOMINATIM_REV_URL)
   url.searchParams.set('lat', String(lat))
   url.searchParams.set('lon', String(lon))
   url.searchParams.set('format', 'jsonv2')

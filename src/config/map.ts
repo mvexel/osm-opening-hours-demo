@@ -6,4 +6,5 @@ export const DEFAULT_VIEW = {
   zoom: MIN_ZOOM,
 }
 
-export const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+export const MAP_STYLE = import.meta.env.VITE_MAP_STYLE_URL || 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+
