@@ -383,25 +383,35 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="card-body">
-                <div className="label">Schedule</div>
-                <OpeningHoursSchedule
-                  key={`schedule-${selectedPoi.id}`}
-                  openingHours={selectedOh}
-                  hourCycle={hourCycle}
-                  locale={locale}
-                />
-              </div>
+              {selectedOh ? (
+                <>
+                  <div className="card-body">
+                    <div className="label">Schedule</div>
+                    <OpeningHoursSchedule
+                      key={`schedule-${selectedPoi.id}`}
+                      openingHours={selectedOh}
+                      hourCycle={hourCycle}
+                      locale={locale}
+                    />
+                  </div>
 
-              <div className="card-body">
-                <div className="label">Edit</div>
-                <OpeningHoursEditor
-                  key={`editor-${selectedPoi.id}`}
-                  openingHours={selectedOh}
-                  locale={locale}
-                  onChange={handlePoiEdit}
-                />
-              </div>
+                  <div className="card-body">
+                    <div className="label">Edit</div>
+                    <OpeningHoursEditor
+                      key={`editor-${selectedPoi.id}`}
+                      openingHours={selectedOh}
+                      locale={locale}
+                      onChange={handlePoiEdit}
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="card-body">
+                  <div className="no-hours-message">
+                    No opening hours specified for this location.
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="placeholder">Select a POI marker to inspect its opening hours.</div>

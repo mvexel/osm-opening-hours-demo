@@ -253,6 +253,16 @@ select {
   text-align: right;
 }
 
+.no-hours-message {
+  padding: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
 @media (max-width: 1024px) {
   .main { grid-template-columns: 1fr; }
 }
