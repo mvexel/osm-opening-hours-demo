@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Map } from './components/Map'
-import { GeocodeSearch } from './components/GeocodeSearch'
-import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
 import type { opening_hours as OpeningHoursLib } from '@osm-is-it-open/hours'
+import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours, HourCycle } from '@osm-is-it-open/hours'
 import '@osm-is-it-open/hours/dist/styles.css'
-import type { POI, OpenStatus } from './types/poi'
+import { useEffect, useMemo, useState } from 'react'
+import { GeocodeSearch } from './components/GeocodeSearch'
+import { Map } from './components/Map'
 import { DEFAULT_VIEW, MIN_ZOOM } from './config/map'
+import type { OpenStatus, POI } from './types/poi'
 import { reverseGeocodePlace } from './utils/nominatim'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
@@ -23,7 +23,7 @@ type ViewState = { latitude: number; longitude: number; zoom: number }
 
 type PlaceInfo = { city?: string; countryCode?: string; state?: string }
 
-function computeStatus(oh: opening_hours | null, now: Date): OpenStatus {
+function computeStatus(oh: OpeningHoursLib | null, now: Date): OpenStatus {
   if (!oh) return 'unknown'
   try {
     const unknown = oh.getUnknown(now)
@@ -34,7 +34,7 @@ function computeStatus(oh: opening_hours | null, now: Date): OpenStatus {
   }
 }
 
-function prettifyValue(oh: opening_hours | null, fallback: string | undefined): string {
+function prettifyValue(oh: OpeningHoursLib | null, fallback: string | undefined): string {
   if (!oh) return fallback ?? ''
   try {
     return oh.prettifyValue() || fallback || ''
@@ -65,7 +65,7 @@ function getStatusClass(oh: OpeningHoursLib | null, now: Date): string {
   }
 }
 
-function formatRelativeTime(date: Date, now: Date, hourCycle: 'auto' | '12h' | '24h', locale: string): string {
+function formatRelativeTime(date: Date, now: Date, hourCycle: HourCycle, locale: string): string {
   const nowDate = new Date(now)
   nowDate.setHours(0, 0, 0, 0)
   const targetDate = new Date(date)
@@ -88,7 +88,7 @@ function formatRelativeTime(date: Date, now: Date, hourCycle: 'auto' | '12h' | '
     const timeFormatter = new Intl.DateTimeFormat(locale, {
       hour: 'numeric',
       minute: '2-digit',
-      ...(hourCycle !== 'auto' && { hour12: hourCycle === '12h' }),
+      ...(hourCycle !== HourCycle.Auto && { hour12: hourCycle === HourCycle.TwelveHour }),
     })
     timeStr = timeFormatter.format(date)
   }
@@ -104,7 +104,7 @@ function formatRelativeTime(date: Date, now: Date, hourCycle: 'auto' | '12h' | '
   }
 }
 
-function getNextChangeMessage(oh: OpeningHoursLib | null, now: Date, hourCycle: 'auto' | '12h' | '24h', locale: string): string | null {
+function getNextChangeMessage(oh: OpeningHoursLib | null, now: Date, hourCycle: HourCycle, locale: string): string | null {
   if (!oh) return null
   try {
     const unknown = oh.getUnknown(now)
@@ -132,7 +132,7 @@ export default function App() {
   const [selectedPoi, setSelectedPoi] = useState<POI | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [hourCycle, setHourCycle] = useState<'auto' | '12h' | '24h'>('auto')
+  const [hourCycle, setHourCycle] = useState<HourCycle>(HourCycle.Auto)
   const [locale, setLocale] = useState<string>('en')
   const [initialViewState, setInitialViewState] = useState<ViewState>(DEFAULT_VIEW)
   const [currentZoom, setCurrentZoom] = useState(DEFAULT_VIEW.zoom)
@@ -369,7 +369,7 @@ export default function App() {
           <div className="control">
             <span>Clock</span>
             <div className="pill-group">
-              {(['auto', '24h', '12h'] as const).map((cycle) => (
+              {Object.values(HourCycle).map((cycle) => (
                 <button
                   key={cycle}
                   className={hourCycle === cycle ? 'pill active' : 'pill'}
@@ -463,7 +463,7 @@ export default function App() {
                     <OpeningHoursSchedule
                       key={`schedule-${selectedPoi.id}`}
                       openingHours={selectedOh}
-                      hourCycle={hourCycle === 'auto' ? undefined : hourCycle}
+                      hourCycle={hourCycle === HourCycle.Auto ? undefined : hourCycle}
                       locale={locale}
                     />
                   )}
