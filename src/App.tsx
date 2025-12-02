@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Map } from './components/Map'
 import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
+import type { opening_hours as OpeningHoursLib } from '@osm-is-it-open/hours'
 import '@osm-is-it-open/hours/dist/styles.css'
 import type { POI, OpenStatus } from './types/poi'
 import { DEFAULT_VIEW, MIN_ZOOM } from './config/map'
@@ -38,6 +39,77 @@ function prettifyValue(oh: opening_hours | null, fallback: string | undefined): 
     return oh.prettifyValue() || fallback || ''
   } catch {
     return fallback || ''
+  }
+}
+
+function getStatusLabel(oh: OpeningHoursLib | null, now: Date): string {
+  if (!oh) return 'Unknown'
+  try {
+    const unknown = oh.getUnknown(now)
+    if (unknown) return 'Unknown'
+    return oh.getState(now) ? 'Open' : 'Closed'
+  } catch {
+    return 'Unknown'
+  }
+}
+
+function getStatusClass(oh: OpeningHoursLib | null, now: Date): string {
+  if (!oh) return 'status-unknown'
+  try {
+    const unknown = oh.getUnknown(now)
+    if (unknown) return 'status-unknown'
+    return oh.getState(now) ? 'status-open' : 'status-closed'
+  } catch {
+    return 'status-unknown'
+  }
+}
+
+function formatRelativeTime(date: Date, now: Date, hourCycle: '12h' | '24h', locale: string): string {
+  const nowDate = new Date(now)
+  nowDate.setHours(0, 0, 0, 0)
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+
+  const dayDiff = Math.floor((targetDate.getTime() - nowDate.getTime()) / (1000 * 60 * 60 * 24))
+
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: hourCycle === '12h',
+  })
+  const timeStr = timeFormatter.format(date)
+
+  if (dayDiff === 0) {
+    return `today ${timeStr}`
+  } else if (dayDiff === 1) {
+    return `tomorrow ${timeStr}`
+  } else {
+    const dayFormatter = new Intl.DateTimeFormat(locale, { weekday: 'long' })
+    const dayName = dayFormatter.format(date)
+    return `${dayName} ${timeStr}`
+  }
+}
+
+function getNextChangeMessage(oh: OpeningHoursLib | null, now: Date, hourCycle: '12h' | '24h', locale: string): string | null {
+  if (!oh) return null
+  try {
+    const unknown = oh.getUnknown(now)
+    if (unknown) return null
+
+    const isOpen = oh.getState(now)
+    const nextChange = oh.getNextChange(now)
+
+    if (!nextChange) return null
+
+    const relativeTime = formatRelativeTime(nextChange, now, hourCycle, locale)
+
+    if (isOpen) {
+      return `Closes ${relativeTime}`
+    } else {
+      return `Opens ${relativeTime}`
+    }
+  } catch {
+    return null
   }
 }
 
@@ -281,9 +353,13 @@ export default function App() {
             initialViewState={initialViewState}
             currentZoom={currentZoom}
           />
+          {loading && (
+            <div className="map-loading-overlay">
+              <div className="spinner"></div>
+            </div>
+          )}
         </div>
         <div className="side-pane">
-          {loading && <div className="status">Loading…</div>}
           {error && <div className="status error">{error}</div>}
           {selectedPoi ? (
             <div className="card">
@@ -295,14 +371,16 @@ export default function App() {
                     <div className="muted">{selectedPlace.city}{selectedPlace.countryCode ? ` · ${selectedPlace.countryCode.toUpperCase()}` : ''}</div>
                   )}
                 </div>
-                <OpeningHoursEditor
-                  key={selectedPoi.id}
-                  openingHours={selectedOh}
-                  hourCycle={hourCycle}
-                  locale={locale}
-                  editable={false}
-                  className="oh-badge"
-                />
+                <div className="oh-status">
+                  <div className={`oh-badge ${getStatusClass(selectedOh, now)}`}>
+                    {getStatusLabel(selectedOh, now)}
+                  </div>
+                  {getNextChangeMessage(selectedOh, now, hourCycle, locale) && (
+                    <div className="oh-next-change">
+                      {getNextChangeMessage(selectedOh, now, hourCycle, locale)}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="card-body">
@@ -320,9 +398,8 @@ export default function App() {
                 <OpeningHoursEditor
                   key={`editor-${selectedPoi.id}`}
                   openingHours={selectedOh}
-                  hourCycle={hourCycle}
+                  locale={locale}
                   onChange={handlePoiEdit}
-                  osmId={selectedPoi.id}
                 />
               </div>
             </div>

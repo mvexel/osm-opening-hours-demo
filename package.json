@@ -4,8 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:all": "docker-compose up -d postgres api && vite",
+    "dev": "vite --port 5173 --host 127.0.0.1",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
