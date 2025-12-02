@@ -10,8 +10,17 @@ type PlaceInfo = {
   displayName?: string
 }
 
+/**
+ * Cache for reverse geocoded places.
+ */
 const cache = new Map<string, PlaceInfo | undefined>()
 
+/**
+ * Reverse geocodes a place using the Nominatim API.
+ * @param lat The latitude of the place.
+ * @param lon The longitude of the place.
+ * @returns A Promise that resolves to a PlaceInfo object containing the country code, state, city, and display name of the place.
+ */
 export async function reverseGeocodePlace(lat: number, lon: number): Promise<PlaceInfo | undefined> {
   const key = `${lat.toFixed(3)},${lon.toFixed(3)}`
   if (cache.has(key)) return cache.get(key)
@@ -51,6 +60,12 @@ export async function reverseGeocodePlace(lat: number, lon: number): Promise<Pla
   }
 }
 
+/**
+ * Reverse geocodes a country using the Nominatim API.
+ * @param lat The latitude of the country.
+ * @param lon The longitude of the country.
+ * @returns A Promise that resolves to a string containing the country code of the country.
+ */
 export async function reverseGeocodeCountry(lat: number, lon: number): Promise<string | undefined> {
   const info = await reverseGeocodePlace(lat, lon)
   return info?.countryCode
