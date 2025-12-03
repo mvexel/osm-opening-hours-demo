@@ -61,23 +61,29 @@ app.get('/api/pois', async (req, res) => {
 
         const result = await pool.query(query, [west, south, east, north]);
 
-        // Format response to match Overpass API structure
-        const elements = result.rows.map(row => {
+        // Format response as GeoJSON FeatureCollection
+        const features = result.rows.map(row => {
             const tags = row.tags || {};
             // Include name in tags if it exists
             if (row.name) {
                 tags.name = row.name;
             }
             return {
-                type: row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation',
-                id: row.osm_id,
-                lat: parseFloat(row.lat),
-                lon: parseFloat(row.lon),
-                tags
+                type: 'Feature',
+                id: `${row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation'}/${row.osm_id}`,
+                geometry: {
+                    type: 'Point',
+                    coordinates: [parseFloat(row.lon), parseFloat(row.lat)]
+                },
+                properties: {
+                    osm_type: row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation',
+                    osm_id: row.osm_id,
+                    ...tags
+                }
             };
         });
 
-        res.json({ elements });
+        res.json({ type: 'FeatureCollection', features });
     } catch (error) {
         console.error('Error fetching POIs:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -130,15 +136,21 @@ app.get('/api/element/:type/:id', async (req, res) => {
         if (row.name) {
             tags.name = row.name;
         }
-        const element = {
-            type: row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation',
-            id: row.osm_id,
-            lat: parseFloat(row.lat),
-            lon: parseFloat(row.lon),
-            tags
+        const feature = {
+            type: 'Feature',
+            id: `${row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation'}/${row.osm_id}`,
+            geometry: {
+                type: 'Point',
+                coordinates: [parseFloat(row.lon), parseFloat(row.lat)]
+            },
+            properties: {
+                osm_type: row.osm_type === 'N' ? 'node' : row.osm_type === 'W' ? 'way' : 'relation',
+                osm_id: row.osm_id,
+                ...tags
+            }
         };
 
-        res.json({ elements: [element] });
+        res.json({ type: 'FeatureCollection', features: [feature] });
     } catch (error) {
         console.error('Error fetching element:', error);
         res.status(500).json({ error: 'Internal server error' });
