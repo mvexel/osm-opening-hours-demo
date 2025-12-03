@@ -1,23 +1,15 @@
 import type { opening_hours as OpeningHoursLib } from '@osm-is-it-open/hours'
-import { OpeningHoursEditor, OpeningHoursSchedule, opening_hours, HourCycle } from '@osm-is-it-open/hours'
+import { HourCycle, OpeningHoursEditor, OpeningHoursSchedule, opening_hours } from '@osm-is-it-open/hours'
 import '@osm-is-it-open/hours/dist/styles.css'
 import { useEffect, useMemo, useState } from 'react'
 import { GeocodeSearch } from './components/GeocodeSearch'
 import { Map } from './components/Map'
 import { DEFAULT_VIEW, MIN_ZOOM } from './config/map'
+import { LOCALE_OPTIONS } from './config/locales'
 import type { OpenStatus, POI } from './types/poi'
 import { reverseGeocodePlace } from './utils/nominatim'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-
-const LOCALE_OPTIONS = [
-  'en', 'en-US', 'en-GB', 'en-CA',
-  'fr', 'fr-CA', 'de', 'es', 'it',
-  'nl', 'pt', 'sv', 'da', 'fi',
-  'no', 'pl', 'cs', 'sk', 'sl',
-  'hu', 'ro', 'bg', 'el', 'ru',
-  'ja', 'ko', 'zh-CN', 'zh-TW', 'ar',
-]
 
 type ViewState = { latitude: number; longitude: number; zoom: number }
 
@@ -170,44 +162,45 @@ export default function App() {
       }
       const data = await res.json()
       const parsed: POI[] = []
-      for (const el of data.elements ?? []) {
-        const tags = el.tags || {}
+      for (const feature of data.features ?? []) {
+        const props = feature.properties || {}
+        const [lon, lat] = feature.geometry.coordinates
         const openingHours =
-          tags.opening_hours ||
-          tags['opening_hours:covid19'] ||
-          tags['opening_hours:conditional'] ||
+          props.opening_hours ||
+          props['opening_hours:covid19'] ||
+          props['opening_hours:conditional'] ||
           undefined
 
         let oh: opening_hours | null = null
         if (openingHours) {
           try {
             oh = new opening_hours(openingHours, {
-              lat: el.lat,
-              lon: el.lon,
+              lat,
+              lon,
               address: {
                 country_code: placeInfo?.countryCode || '',
                 state: placeInfo?.state || ''
               }
             })
           } catch (err) {
-            console.warn(`Failed to parse opening hours for ${el.type}/${el.id}:`, openingHours, err)
+            console.warn(`Failed to parse opening hours for ${feature.id}:`, openingHours, err)
             oh = null
           }
         }
 
         parsed.push({
-          id: `${el.type}/${el.id}`,
-          lat: el.lat,
-          lon: el.lon,
-          name: tags.name,
-          amenity: tags.amenity,
-          shop: tags.shop,
-          tags,
+          id: feature.id,
+          lat,
+          lon,
+          name: props.name,
+          amenity: props.amenity,
+          shop: props.shop,
+          tags: props,
           openingHours,
           openStatus: computeStatus(oh, now),
         })
         if (!openingHours || !oh) {
-          console.log(`POI ${el.type}/${el.id} has no valid hours:`, { openingHours, status: computeStatus(oh, now) })
+          console.log(`POI ${feature.id} has no valid hours:`, { openingHours, status: computeStatus(oh, now) })
         }
       }
       setPois(parsed)
@@ -300,34 +293,36 @@ export default function App() {
         throw new Error(`API error (${res.status}): ${errorText}`)
       }
       const data = await res.json()
-      const element = data?.elements?.[0]
-      if (!element) throw new Error('Element not found')
+      const feature = data?.features?.[0]
+      if (!feature) throw new Error('Element not found')
+
+      const props = feature.properties || {}
+      const [lon, lat] = feature.geometry.coordinates
 
       // Get location info first for country code
-      const placeInfo = await reverseGeocodePlace(element.lat, element.lon)
+      const placeInfo = await reverseGeocodePlace(lat, lon)
 
-      const tags = element.tags || {}
       const openingHours =
-        tags.opening_hours ||
-        tags['opening_hours:covid19'] ||
-        tags['opening_hours:conditional'] ||
+        props.opening_hours ||
+        props['opening_hours:covid19'] ||
+        props['opening_hours:conditional'] ||
         ''
       const oh = openingHours ? new opening_hours(openingHours, {
-        lat: element.lat,
-        lon: element.lon,
+        lat,
+        lon,
         address: {
           country_code: placeInfo?.countryCode || '',
           state: placeInfo?.state || ''
         }
       }) : null
       const poi: POI = {
-        id: `${element.type}/${element.id}`,
-        lat: element.lat,
-        lon: element.lon,
-        name: tags.name,
-        amenity: tags.amenity,
-        shop: tags.shop,
-        tags,
+        id: feature.id,
+        lat,
+        lon,
+        name: props.name,
+        amenity: props.amenity,
+        shop: props.shop,
+        tags: props,
         openingHours,
         openStatus: computeStatus(oh, new Date()),
       }
@@ -407,6 +402,7 @@ export default function App() {
             onViewChange={handleViewChange}
             initialViewState={initialViewState}
             currentZoom={currentZoom}
+            selectedPoi={selectedPoi}
           />
           {loading && (
             <div className="map-loading-overlay">
