@@ -56,7 +56,6 @@ app.get('/api/pois', async (req, res) => {
         ST_MakeEnvelope($1, $2, $3, $4, 4326),
         geom
       )
-      LIMIT 1000
     `;
 
         const result = await pool.query(query, [west, south, east, north]);
