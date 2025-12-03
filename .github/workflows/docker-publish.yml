@@ -39,6 +39,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout osm-is-it-open dependency
+        if: matrix.name == 'frontend'
+        uses: actions/checkout@v4
+        with:
+          repository: mvexel/osm-is-it-open
+          path: osm-is-it-open
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

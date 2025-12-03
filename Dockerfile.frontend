@@ -3,10 +3,21 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy osm-is-it-open dependency first (will be in build context)
+COPY osm-is-it-open /osm-is-it-open
+
+# Build the dependency
+WORKDIR /osm-is-it-open
+RUN npm install && npm run build
+
+# Now build the main app
+WORKDIR /app
 COPY package*.json ./
 
-# Install dependencies
+# Install the local dependency
+RUN npm install /osm-is-it-open
+
+# Install other dependencies
 RUN npm install
 
 # Copy source code

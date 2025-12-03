@@ -45,3 +45,6 @@ docker-compose*.yml
 
 # CI/CD
 .github
+
+# Keep osm-is-it-open for frontend builds (will be added by GitHub Actions)
+# osm-is-it-open

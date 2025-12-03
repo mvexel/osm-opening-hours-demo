@@ -257,13 +257,26 @@ Docker images are automatically built and published to GitHub Container Registry
 - `sha-<commit>` - Specific commit SHA
 - `v*` - Version tags (if using semantic versioning)
 
+### Dependencies
+
+The frontend depends on `@osm-is-it-open/hours`, which is not yet published to npm. The GitHub Actions workflow automatically fetches this dependency from the [osm-is-it-open repository](https://github.com/mvexel/osm-is-it-open) during the Docker build.
+
+For local development, ensure the `osm-is-it-open` repository is cloned as a sibling directory:
+
+```bash
+# Directory structure
+dev/
+├── osm-opening-hours-app/  # This repo
+└── osm-is-it-open/         # Dependency repo
+```
+
 ### Building Locally
 
 ```bash
 # Build API
 docker build -t osm-opening-hours-api -f api/Dockerfile ./api
 
-# Build frontend
+# Build frontend (requires osm-is-it-open as sibling directory)
 docker build -t osm-opening-hours-frontend -f Dockerfile.frontend .
 
 # Build data pipeline
