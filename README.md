@@ -241,6 +241,39 @@ Compared to Overpass API:
 - **Offline capable** (works without internet)
 - **Consistent performance** (no server load issues)
 
+## Docker Images
+
+Docker images are automatically built and published to GitHub Container Registry (GHCR) on every push to the main branch.
+
+### Available Images
+
+- `ghcr.io/mvexel/osm-opening-hours-api:latest` - Express API server
+- `ghcr.io/mvexel/osm-opening-hours-frontend:latest` - React frontend (nginx)
+- `ghcr.io/mvexel/osm-opening-hours-pipeline:latest` - Data import pipeline
+
+### Image Tags
+
+- `latest` - Latest build from the main branch
+- `sha-<commit>` - Specific commit SHA
+- `v*` - Version tags (if using semantic versioning)
+
+### Building Locally
+
+```bash
+# Build API
+docker build -t osm-opening-hours-api -f api/Dockerfile ./api
+
+# Build frontend
+docker build -t osm-opening-hours-frontend -f Dockerfile.frontend .
+
+# Build data pipeline
+docker build -t osm-opening-hours-pipeline -f data-pipeline/Dockerfile .
+```
+
+### Production Deployment
+
+For production deployment using GHCR images, see the [infra deployment documentation](https://github.com/mvexel/infra/tree/main/openinghoursmap).
+
 ## License
 
 See LICENSE file for details.
