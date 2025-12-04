@@ -51,7 +51,11 @@ services:
       DATABASE_PORT: 5432
       DATABASE_USER: ${POSTGRES_USER:-postgres}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      OSM_DATA_FILE: ${OSM_DATA_FILE:-/app/data/utah-latest.osm.pbf}
+      # BREAKING CHANGE: OSM_DATA_FILE renamed to OSM_INPUT_FILE
+      # Update your .env file: OSM_DATA_FILE=/app/data/utah-latest.osm.pbf -> OSM_INPUT_FILE=/app/data/utah-latest.osm.pbf
+      OSM_INPUT_FILE: ${OSM_INPUT_FILE:-/app/data/utah-latest.osm.pbf}
+      FILTERED_DATA_DIR: ${FILTERED_DATA_DIR:-/app/data/filtered}
+      REPLICATION_URL: ${REPLICATION_URL:-}  # Auto-detected if empty
     volumes:
       - ./data:/app/data
     depends_on:

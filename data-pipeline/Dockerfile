@@ -35,18 +35,18 @@ WORKDIR /app
 COPY --from=generator /app/poi_mapping.lua ./
 
 # Copy scripts and Lua files
-COPY data-pipeline/run_osm2pgsql.sh ./
-COPY data-pipeline/prefilter_osm.sh ./
+COPY data-pipeline/load_osm_data.sh ./
+COPY data-pipeline/update_osm_data.sh ./
 COPY data-pipeline/pois.lua ./
 
 # Make scripts executable
-RUN chmod +x run_osm2pgsql.sh prefilter_osm.sh
+RUN chmod +x load_osm_data.sh update_osm_data.sh
 
-# Create data directory
-RUN mkdir -p /app/data
+# Create data and filtered data directories
+RUN mkdir -p /app/data /app/data/filtered /mnt/infra-data/openinghoursmap/filtered
 
 # Create non-root user
 RUN useradd -m -u 1000 osmuser && chown -R osmuser:osmuser /app
 USER osmuser
 
-CMD ["./run_osm2pgsql.sh"]
+CMD ["./load_osm_data.sh"]

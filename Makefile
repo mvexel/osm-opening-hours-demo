@@ -1,4 +1,4 @@
-.PHONY: help up down logs db-seed db-reset build clean
+.PHONY: help up down logs db-seed db-update db-reset build clean
 
 help:
 	@echo "OSM Opening Hours App - Docker Commands"
@@ -8,6 +8,7 @@ help:
 	@echo "  make down        - Stop all services"
 	@echo "  make logs        - View service logs"
 	@echo "  make db-seed     - Import OSM data into database"
+	@echo "  make db-update   - Apply incremental OSM updates"
 	@echo "  make db-reset    - Reset database (WARNING: deletes all data)"
 	@echo "  make build       - Build Docker images"
 	@echo "  make clean       - Remove volumes and clean up"
@@ -24,8 +25,12 @@ logs:
 
 db-seed:
 	@echo "Importing OSM data..."
-	@echo "Using: $${OSM_DATA_FILE:-/app/data/utah-latest.osm.pbf}"
+	@echo "Using: $${OSM_INPUT_FILE:-/app/data/utah-latest.osm.pbf}"
 	docker-compose run --rm data-pipeline
+
+db-update:
+	@echo "Applying incremental OSM updates..."
+	docker-compose run --rm --entrypoint ./update_osm_data.sh data-pipeline
 
 db-reset:
 	@echo "WARNING: This will delete all data in the database!"
